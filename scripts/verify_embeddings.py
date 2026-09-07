@@ -22,6 +22,13 @@ STORAGE_DIR = BASE_DIR / "storage"
 def main():
     print("=== PHASE 5: EMBEDDING VERIFICATION ===")
     
+    root_dir = Path(__file__).resolve().parent.parent
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(root_dir / ".env")
+    except ImportError:
+        pass
+    
     if not os.getenv("OPENAI_API_KEY"):
         print("\n[SKIPPED]")
         print("OPENAI_API_KEY is not set.")

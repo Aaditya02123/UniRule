@@ -20,3 +20,14 @@ class DocumentChunk(BaseModel):
     page: Optional[int] = None
     
     model_config = ConfigDict(frozen=True)
+
+class RetrievalResult(BaseModel):
+    chunk_id: str
+    document: str
+    file_type: str
+    text: str
+    section: Optional[str] = None
+    page: Optional[int] = None
+    similarity_score: float
+    
+    model_config = ConfigDict(frozen=True)
