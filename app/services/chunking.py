@@ -50,7 +50,7 @@ def generate_chunk_id(document: str, page: int | None, section: str | None, chun
     payload = f"{document}|{page}|{section}|{chunk_index}|{text}"
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
 
-def chunk_record(record: DocumentRecord, min_tokens=350, max_tokens=600) -> List[DocumentChunk]:
+def chunk_record(record: DocumentRecord, min_tokens=350, max_tokens=600, start_index=0) -> List[DocumentChunk]:
     chunks = []
     text = record.text.strip()
     
@@ -59,7 +59,7 @@ def chunk_record(record: DocumentRecord, min_tokens=350, max_tokens=600) -> List
     
     # Base Case: Single element natively maps below boundary
     if estimate_tokens(text) <= max_tokens:
-        chunk_id = generate_chunk_id(record.document, record.page, record.section, 0, text)
+        chunk_id = generate_chunk_id(record.document, record.page, record.section, start_index, text)
         return [DocumentChunk(
             chunk_id=chunk_id,
             document=record.document,
@@ -72,7 +72,7 @@ def chunk_record(record: DocumentRecord, min_tokens=350, max_tokens=600) -> List
     paragraphs = text.split('\n\n')
     current_chunk_text = []
     current_tokens = 0
-    chunk_index = 0
+    chunk_index = start_index
     
     def emit_chunk():
         nonlocal current_chunk_text, current_tokens, chunk_index, chunks
@@ -140,7 +140,7 @@ def chunk_record(record: DocumentRecord, min_tokens=350, max_tokens=600) -> List
         cleaned_text = re.sub(r'\n{3,}', '\n\n', chunks[i].text) 
         # Update the frozen Pydantic model natively by rebuilding it
         if cleaned_text != chunks[i].text:
-            c_id = generate_chunk_id(record.document, record.page, record.section, i, cleaned_text)
+            c_id = generate_chunk_id(record.document, record.page, record.section, start_index + i, cleaned_text)
             chunks[i] = DocumentChunk(
                 chunk_id=c_id,
                 document=record.document,
@@ -160,6 +160,9 @@ def chunk_corpus(records: Iterable[DocumentRecord], min_tokens=350, max_tokens=6
     current_page = None
     current_file_type = None
     
+    import collections
+    chunk_counts = collections.defaultdict(int)
+    
     current_texts = []
     current_tokens = 0
     
@@ -176,8 +179,14 @@ def chunk_corpus(records: Iterable[DocumentRecord], min_tokens=350, max_tokens=6
             section=current_section,
             page=current_page
         )
+        # Get proper cumulative chunks bound offset ensuring non-contiguous stability natively
+        count_key = (current_doc, current_section, current_page)
+        start_index = chunk_counts[count_key]
+        
         # Process the newly merged record through standard boundaries checking
-        chunks.extend(chunk_record(merged_record, min_tokens, max_tokens))
+        new_chunks = chunk_record(merged_record, min_tokens, max_tokens, start_index=start_index)
+        chunks.extend(new_chunks)
+        chunk_counts[count_key] += len(new_chunks)
         
         current_texts = []
         current_tokens = 0

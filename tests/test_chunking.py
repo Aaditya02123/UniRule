@@ -75,15 +75,27 @@ def test_chunk_ids_deterministic_and_unique():
     ids2 = [c.chunk_id for c in chunks2]
     
 def test_adjacent_merging():
-    # Matching adjacent records
-    records = [
-        DocumentRecord(document="d1.pdf", file_type="pdf", text="Row 1.", section="Sec 1", page=1),
-        DocumentRecord(document="d1.pdf", file_type="pdf", text="Row 2.", section="Sec 1", page=1)
-    ]
-    chunks = chunk_corpus(records, max_tokens=600)
-    assert len(chunks) == 1
-    assert "Row 1.\n\nRow 2." in chunks[0].text
+    r1 = DocumentRecord(document="test.md", file_type="md", text="Line 1.", section="Sec1")
+    r2 = DocumentRecord(document="test.md", file_type="md", text="Line 2.", section="Sec1")
+    r3 = DocumentRecord(document="test.md", file_type="md", text="Line 3.", section="Sec2") 
     
+    chunks = chunk_corpus([r1, r2, r3], min_tokens=100, max_tokens=200)
+    assert len(chunks) == 2
+    assert chunks[0].text == "Line 1.\n\nLine 2."
+    assert chunks[1].text == "Line 3."
+
+def test_non_contiguous_duplicates():
+    r1 = DocumentRecord(document="test.md", file_type="md", text="Header", section="H")
+    r2 = DocumentRecord(document="test.md", file_type="md", text="Different", section="D")
+    r3 = DocumentRecord(document="test.md", file_type="md", text="Header", section="H")
+    
+    chunks = chunk_corpus([r1, r2, r3], min_tokens=100, max_tokens=200)
+    assert len(chunks) == 3
+    
+    # 0 and 2 are identical structurally but must yield explicit distinct IDs natively
+    assert chunks[0].text == "Header"
+    assert chunks[2].text == "Header"
+    assert chunks[0].chunk_id != chunks[2].chunk_id  
     # Non-matching pages
     records_page = [
         DocumentRecord(document="d1.pdf", file_type="pdf", text="Row A", section="Sec 1", page=1),
