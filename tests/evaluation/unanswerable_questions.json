@@ -1,0 +1,127 @@
+[
+    {
+        "id": "U01",
+        "question": "Are there any specialized vegetarian options available in the university dining hall?",
+        "expected_status": "NOT_COVERED"
+    },
+    {
+        "id": "U02",
+        "question": "Can I keep a microwave in my hostel room?",
+        "expected_status": "NOT_COVERED"
+    },
+    {
+        "id": "U03",
+        "question": "Is there a university shuttle bus that transports students to the airport?",
+        "expected_status": "NOT_COVERED"
+    },
+    {
+        "id": "U04",
+        "question": "How many hours of community service do I need to complete to graduate?",
+        "expected_status": "NOT_COVERED"
+    },
+    {
+        "id": "U05",
+        "question": "Can my parents stay overnight in my room on the weekends?",
+        "expected_status": "NOT_COVERED"
+    },
+    {
+        "id": "U06",
+        "question": "Is there a fine for parking my bicycle in the dormitory corridor?",
+        "expected_status": "NOT_COVERED"
+    },
+    {
+        "id": "U07",
+        "question": "Does the student health center provide free dental cleanings?",
+        "expected_status": "NOT_COVERED"
+    },
+    {
+        "id": "U08",
+        "question": "Can I submit my assignments printed on recycled paper?",
+        "expected_status": "NOT_COVERED"
+    },
+    {
+        "id": "U09",
+        "question": "Who can I contact if the AC in my classroom is broken?",
+        "expected_status": "NOT_COVERED"
+    },
+    {
+        "id": "U10",
+        "question": "Are postgraduate students allowed to start campus clubs?",
+        "expected_status": "NOT_COVERED"
+    },
+    {
+        "id": "U11",
+        "question": "Is there a university-sponsored study abroad program in Japan?",
+        "expected_status": "NOT_COVERED"
+    },
+    {
+        "id": "U12",
+        "question": "Does the scholarship cover the purchase of textbooks?",
+        "expected_status": "NOT_COVERED"
+    },
+    {
+        "id": "U13",
+        "question": "Can I change my major from Arts to Engineering in my second year?",
+        "expected_status": "NOT_COVERED"
+    },
+    {
+        "id": "U14",
+        "question": "Are external tutors allowed to enter the campus library?",
+        "expected_status": "NOT_COVERED"
+    },
+    {
+        "id": "U15",
+        "question": "Will my tuition fee be refunded if I withdraw in the third week?",
+        "expected_status": "NOT_COVERED"
+    },
+    {
+        "id": "U16",
+        "question": "Can I pay my semester fees using cryptocurrency?",
+        "expected_status": "NOT_COVERED"
+    },
+    {
+        "id": "U17",
+        "question": "Does the university provide free laptops to engineering scholarship students?",
+        "expected_status": "NOT_COVERED"
+    },
+    {
+        "id": "U18",
+        "question": "Is there a designated smoking area on the campus?",
+        "expected_status": "NOT_COVERED"
+    },
+    {
+        "id": "U19",
+        "question": "How do I reserve a study room in the library?",
+        "expected_status": "NOT_COVERED"
+    },
+    {
+        "id": "U20",
+        "question": "Can I bring my pet cat into the hostel?",
+        "expected_status": "NOT_COVERED"
+    },
+    {
+        "id": "U21",
+        "question": "Are campus computer labs open 24/7 during finals week?",
+        "expected_status": "NOT_COVERED"
+    },
+    {
+        "id": "U22",
+        "question": "Can I apply for the President's Merit Scholarship after my freshman year?",
+        "expected_status": "NOT_COVERED"
+    },
+    {
+        "id": "U23",
+        "question": "Does the university offer subsidies for public transportation?",
+        "expected_status": "NOT_COVERED"
+    },
+    {
+        "id": "U24",
+        "question": "Do I have to live in the hostel if my home is only 10 miles away?",
+        "expected_status": "NOT_COVERED"
+    },
+    {
+        "id": "U25",
+        "question": "Can I use the university gym during the summer break?",
+        "expected_status": "NOT_COVERED"
+    }
+]

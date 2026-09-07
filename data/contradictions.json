@@ -1,0 +1,41 @@
+[
+  {
+    "contradiction_id": "C01",
+    "topic": "attendance",
+    "source_A": "academic_regulations.pdf",
+    "section_A": "Section 3: Attendance Requirements",
+    "clause_A": "Under no circumstances shall any student with less than 75% attendance be permitted to sit for examinations, including those with medical certificates.",
+    "source_B": "medical_exemptions.md",
+    "section_B": "Section 2: Attendance Threshold Alterations",
+    "clause_B": "Students presenting a valid Type A Medical Certificate from the University Hospital are eligible to sit for examinations provided their overall attendance is at least 60%.",
+    "explanation": "academic_regulations explicitly forbids exam eligibility below 75% even with medical certificates, while medical_exemptions explicitly permits it at 60% with a Type A Medical Certificate. These directly conflict for students with medical certificates between 60% and 75% attendance.",
+    "example_question": "I have an approved Type A Medical Certificate and my attendance is 65%. Can I sit for my final exam?",
+    "expected_classification": "CONFLICT"
+  },
+  {
+    "contradiction_id": "C02",
+    "topic": "semester fee deadline",
+    "source_A": "academic_regulations.pdf",
+    "section_A": "Section 7: Semester Fee Payments",
+    "clause_A": "All semester fees must be remitted no later than July 15 for the Fall semester... No extensions are granted beyond July 15.",
+    "source_B": "fee_schedule.csv",
+    "section_B": "Tuition Fee row (Fall Semester)",
+    "clause_B": "Deadline: July 31",
+    "explanation": "academic_regulations specifies July 15 as the absolute final date for fall semester fees, while the fee schedule lists July 31 as the deadline. These are incompatible deadlines for the same financial requirement.",
+    "example_question": "What is the final deadline to pay my fall semester tuition fee?",
+    "expected_classification": "CONFLICT"
+  },
+  {
+    "contradiction_id": "C03",
+    "topic": "hostel curfew",
+    "source_A": "hostel_handbook.pdf",
+    "section_A": "Section 3: Hostel Curfew and Timing",
+    "clause_A": "Undergraduate hostel residents must return to the hostel by 10:00 PM.",
+    "source_B": "student_discipline.md",
+    "section_B": "Part II: Curfew and Movement Regulations",
+    "clause_B": "Undergraduate hostel residents may remain outside the hostel until 11:00 PM on ordinary days.",
+    "explanation": "hostel_handbook enforces a 10:00 PM return policy for undergraduate residents, whereas the student disciplinary code allows the exact same demographic to remain outside until 11:00 PM under ordinary circumstances.",
+    "example_question": "As an undergraduate living on campus, what time is my hostel curfew?",
+    "expected_classification": "CONFLICT"
+  }
+]
