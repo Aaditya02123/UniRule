@@ -1,0 +1,9 @@
+FastAPI==0.110.0
+pydantic==2.6.4
+uvicorn==0.28.0
+numpy==1.26.4
+PyMuPDF==1.24.0
+pytest==8.1.1
+python-dotenv==1.0.1
+openai==1.14.2
+reportlab==4.1.0
