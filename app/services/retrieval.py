@@ -6,7 +6,7 @@ from pathlib import Path
 from openai import OpenAI
 
 from app.models.schemas import DocumentChunk, RetrievalResult
-from app.services.embeddings import load_embeddings
+from app.services.embeddings import load_embeddings, get_embedding_provider
 
 logger = logging.getLogger(__name__)
 
@@ -68,21 +68,8 @@ class RetrievalService:
             raise ValueError("Corrupted stored matrix: contains non-finite values.")
 
     def get_query_embedding(self, question: str) -> np.ndarray:
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise ValueError("OPENAI_API_KEY is required for generating query embeddings.")
-            
-        model = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
-        client = OpenAI(api_key=api_key)
-        
-        try:
-            response = client.embeddings.create(
-                input=[question],
-                model=model
-            )
-            return np.array(response.data[0].embedding, dtype=np.float32)
-        except Exception as e:
-            raise RuntimeError(f"OpenAI API query embedding failure: {e}") from e
+        provider = get_embedding_provider()
+        return provider.get_query_embedding(question)
 
     def retrieve(self, question: str) -> List[RetrievalResult]:
         top_k = int(os.getenv("RETRIEVAL_TOP_K", "8"))

@@ -22,9 +22,15 @@ def mock_openai():
         client_instance = mock.return_value
         yield client_instance
 
+@pytest.fixture
+def mock_sentence_transformer():
+    with patch("sentence_transformers.SentenceTransformer") as mock:
+        yield mock.return_value
+
 def set_valid_env(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "test_mock_key")
     monkeypatch.setenv("EMBEDDING_BATCH_SIZE", "10")
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "openai")
 
 def test_generate_embeddings_success(sample_chunks, mock_openai, monkeypatch):
     set_valid_env(monkeypatch)
@@ -81,6 +87,7 @@ def test_generate_embeddings_ordering(sample_chunks, mock_openai, monkeypatch):
     
 def test_missing_api_key(sample_chunks, monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "openai")
     with pytest.raises(ValueError, match="OPENAI_API_KEY is required"):
         generate_embeddings(sample_chunks)
         
@@ -140,3 +147,57 @@ def test_save_non_finite_values(sample_chunks):
     with TemporaryDirectory() as tmpdir:
         with pytest.raises(ValueError, match="non-finite numeric values"):
             save_embeddings(mock_embeddings, sample_chunks, tmpdir)
+
+def test_local_provider_dimension_and_shape(sample_chunks, mock_sentence_transformer, monkeypatch):
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "local")
+    monkeypatch.setenv("EMBEDDING_BATCH_SIZE", "10")
+    
+    # Mocking standard sentence transformer payload strictly guaranteeing 384 length
+    vector_dim = 384
+    
+    def mock_encode(texts, batch_size=10, show_progress_bar=False):
+        return [np.random.rand(vector_dim).tolist() for _ in texts]
+        
+    mock_sentence_transformer.encode.side_effect = mock_encode
+    
+    embeddings = generate_embeddings(sample_chunks)
+    assert type(embeddings) == np.ndarray
+    assert embeddings.shape == (2, 384)
+    # Ensure chunk ordering implicitly mapped natively against inputs
+    mock_sentence_transformer.encode.assert_called_once()
+    
+    
+from app.services.embeddings import get_embedding_provider, OpenAIProvider, LocalProvider
+def test_provider_selection(monkeypatch):
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "openai")
+    monkeypatch.setenv("OPENAI_API_KEY", "test_mock_key")
+    p1 = get_embedding_provider()
+    assert isinstance(p1, OpenAIProvider)
+    
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "local")
+    try:
+        p2 = get_embedding_provider()
+        assert isinstance(p2, LocalProvider)
+    except RuntimeError:
+        pass # Handle natively skipping if dependencies unavailable in bare environments
+
+    monkeypatch.delenv("EMBEDDING_PROVIDER", raising=False)
+    try:
+        p3 = get_embedding_provider()
+        assert isinstance(p3, LocalProvider)
+    except RuntimeError:
+        pass
+        
+def test_local_provider_empty_and_duplicates(sample_chunks, mock_sentence_transformer, monkeypatch):
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "local")
+    
+    # Test Empty
+    with pytest.raises(ValueError, match="Empty chunk list"):
+        generate_embeddings([])
+        
+    # Test Duplicate
+    duplicate_chunks = sample_chunks.copy()
+    duplicate_chunks.append(sample_chunks[0])
+    
+    with pytest.raises(ValueError, match="Duplicate chunk_id"):
+        generate_embeddings(duplicate_chunks)

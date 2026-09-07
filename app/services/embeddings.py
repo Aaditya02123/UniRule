@@ -5,68 +5,149 @@ import time
 import numpy as np
 from pathlib import Path
 from typing import List, Any
+from abc import ABC, abstractmethod
 from openai import OpenAI
-from pydantic import ValidationError
 
 from app.models.schemas import DocumentChunk
 
 logger = logging.getLogger(__name__)
 
-def generate_embeddings(chunks: List[DocumentChunk], batch_size: int = int(os.getenv("EMBEDDING_BATCH_SIZE", "100"))) -> np.ndarray:
-    """
-    Generates deterministic embeddings for a list of DocumentChunks via OpenAI API.
-    Maintains exact 1:1 order alignment.
-    """
-    if not chunks:
-        raise ValueError("Empty chunk list provided for embedding generation.")
+class EmbeddingProvider(ABC):
+    @abstractmethod
+    def generate_embeddings(self, chunks: List[DocumentChunk], batch_size: int = 100) -> np.ndarray:
+        pass
         
-    chunk_ids = set()
-    for c in chunks:
-        if not c.text.strip():
-            raise ValueError(f"Chunk {c.chunk_id} has empty text.")
-        if c.chunk_id in chunk_ids:
-            raise ValueError(f"Duplicate chunk_id detected: {c.chunk_id}")
-        chunk_ids.add(c.chunk_id)
+    @abstractmethod
+    def get_query_embedding(self, question: str) -> np.ndarray:
+        pass
+
+
+class OpenAIProvider(EmbeddingProvider):
+    def _validate_chunks(self, chunks: List[DocumentChunk]):
+        if not chunks:
+            raise ValueError("Empty chunk list provided for embedding generation.")
+            
+        chunk_ids = set()
+        for c in chunks:
+            if not c.text.strip():
+                raise ValueError(f"Chunk {c.chunk_id} has empty text.")
+            if c.chunk_id in chunk_ids:
+                raise ValueError(f"Duplicate chunk_id detected: {c.chunk_id}")
+            chunk_ids.add(c.chunk_id)
+
+    def generate_embeddings(self, chunks: List[DocumentChunk], batch_size: int = 100) -> np.ndarray:
+        self._validate_chunks(chunks)
         
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY is required for generating embeddings.")
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY is required for generating embeddings.")
+            
+        model = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
+        client = OpenAI(api_key=api_key)
         
-    model = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
-    client = OpenAI(api_key=api_key)
-    
-    all_embeddings = []
-    
-    for i in range(0, len(chunks), batch_size):
-        batch = chunks[i:i + batch_size]
-        texts = [c.text for c in batch]
+        all_embeddings = []
+        
+        for i in range(0, len(chunks), batch_size):
+            batch = chunks[i:i + batch_size]
+            texts = [c.text for c in batch]
+            
+            try:
+                response = client.embeddings.create(
+                    input=texts,
+                    model=model
+                )
+                
+                sorted_data = sorted(response.data, key=lambda x: x.index)
+                for item in sorted_data:
+                    all_embeddings.append(item.embedding)
+                    
+            except Exception as e:
+                logger.error(f"Failed to fetch embeddings for batch starting at index {i}: {e}")
+                raise RuntimeError(f"OpenAI API embedding failure: {e}") from e
+                
+        matrix = np.array(all_embeddings, dtype=np.float32)
+        
+        if len(matrix.shape) != 2:
+            raise ValueError(f"Expected 2D matrix, got shape {matrix.shape}")
+            
+        if matrix.shape[0] != len(chunks):
+            raise ValueError(f"Metadata/Vector length mismatch: generated {matrix.shape[0]} vectors for {len(chunks)} chunks.")
+            
+        return matrix
+
+    def get_query_embedding(self, question: str) -> np.ndarray:
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY is required for generating query embeddings.")
+            
+        model = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
+        client = OpenAI(api_key=api_key)
         
         try:
             response = client.embeddings.create(
-                input=texts,
+                input=[question],
                 model=model
             )
-            
-            # The API returns them in `.data` array, but they might not be sorted identically depending on the client payload.
-            # We must map them securely using the `index` property returned by the OpenAI API response.
-            sorted_data = sorted(response.data, key=lambda x: x.index)
-            
-            for item in sorted_data:
-                all_embeddings.append(item.embedding)
-                
+            return np.array(response.data[0].embedding, dtype=np.float32)
         except Exception as e:
-            logger.error(f"Failed to fetch embeddings for batch starting at index {i}: {e}")
-            raise RuntimeError(f"OpenAI API embedding failure: {e}") from e
+            raise RuntimeError(f"OpenAI API query embedding failure: {e}") from e
+
+
+class LocalProvider(EmbeddingProvider):
+    def __init__(self):
+        try:
+            from sentence_transformers import SentenceTransformer
+        except ImportError:
+            raise RuntimeError("sentence-transformers is not installed.")
             
-    matrix = np.array(all_embeddings, dtype=np.float32)
-    
-    if len(matrix.shape) != 2:
-        raise ValueError(f"Expected 2D matrix, got shape {matrix.shape}")
+        model_name = os.getenv("LOCAL_EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+        self.model = SentenceTransformer(model_name)
         
-    if matrix.shape[0] != len(chunks):
-        raise ValueError(f"Metadata/Vector length mismatch: generated {matrix.shape[0]} vectors for {len(chunks)} chunks.")
+    def _validate_chunks(self, chunks: List[DocumentChunk]):
+        if not chunks:
+            raise ValueError("Empty chunk list provided for embedding generation.")
+            
+        chunk_ids = set()
+        for c in chunks:
+            if not c.text.strip():
+                raise ValueError(f"Chunk {c.chunk_id} has empty text.")
+            if c.chunk_id in chunk_ids:
+                raise ValueError(f"Duplicate chunk_id detected: {c.chunk_id}")
+            chunk_ids.add(c.chunk_id)
+
+    def generate_embeddings(self, chunks: List[DocumentChunk], batch_size: int = 100) -> np.ndarray:
+        self._validate_chunks(chunks)
+        texts = [c.text for c in chunks]
         
-    return matrix
+        # SentenceTransformer gracefully computes batches securely natively tracking lists
+        embeddings = self.model.encode(texts, batch_size=batch_size, show_progress_bar=False)
+        matrix = np.array(embeddings, dtype=np.float32)
+        
+        if len(matrix.shape) != 2:
+            raise ValueError(f"Expected 2D matrix, got shape {matrix.shape}")
+            
+        if matrix.shape[0] != len(chunks):
+            raise ValueError(f"Metadata/Vector length mismatch: generated {matrix.shape[0]} vectors for {len(chunks)} chunks.")
+            
+        return matrix
+        
+    def get_query_embedding(self, question: str) -> np.ndarray:
+        # A single item encoded perfectly statically natively avoiding unbounds natively
+        emb = self.model.encode([question], show_progress_bar=False)[0]
+        return np.array(emb, dtype=np.float32)
+
+
+def get_embedding_provider() -> EmbeddingProvider:
+    provider_name = os.getenv("EMBEDDING_PROVIDER", "local").lower()
+    if provider_name == "openai":
+        return OpenAIProvider()
+    return LocalProvider()
+
+
+# Retains strict backward compatibility with existing tests logically hooking factory inherently smoothly
+def generate_embeddings(chunks: List[DocumentChunk], batch_size: int = int(os.getenv("EMBEDDING_BATCH_SIZE", "100"))) -> np.ndarray:
+    provider = get_embedding_provider()
+    return provider.generate_embeddings(chunks, batch_size=batch_size)
 
 
 def save_embeddings(embeddings: np.ndarray, chunks: List[DocumentChunk], storage_dir: Path | str) -> None:

@@ -36,10 +36,11 @@ def valid_env(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "mock_key")
     monkeypatch.setenv("RETRIEVAL_TOP_K", "3")
     monkeypatch.setenv("RETRIEVAL_MIN_SCORE", "0.5")
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "openai")
 
 @pytest.fixture
 def mock_openai():
-    with patch("app.services.retrieval.OpenAI") as mock:
+    with patch("app.services.embeddings.OpenAI") as mock:
         client_instance = mock.return_value
         yield client_instance
         
