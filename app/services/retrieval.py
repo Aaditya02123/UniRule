@@ -52,6 +52,11 @@ def cosine_similarity(query_emb: np.ndarray, doc_embs: np.ndarray) -> np.ndarray
 class RetrievalService:
     def __init__(self, storage_dir: Path | str):
         self.storage_dir = Path(storage_dir)
+        self.embeddings_path = self.storage_dir / "embeddings.npy"
+        self.metadata_path = self.storage_dir / "metadata.json"
+        
+        self.min_score = float(os.getenv("RETRIEVAL_MIN_SCORE", "0.55"))
+        self.top_k = int(os.getenv("RETRIEVAL_TOP_K", "30"))
         try:
             self.embeddings_matrix, self.chunks = load_embeddings(self.storage_dir)
         except Exception as e:
