@@ -134,11 +134,9 @@ class LocalProvider(EmbeddingProvider):
     def get_query_embedding(self, question: str) -> np.ndarray:
         # A single item encoded perfectly statically natively avoiding unbounds natively
         emb = self.model.encode([question], show_progress_bar=False)[0]
-        return np.array(emb, dtype=np.float32)
-
-
 def get_embedding_provider() -> EmbeddingProvider:
     provider_name = os.getenv("EMBEDDING_PROVIDER", "local").lower()
+    
     if provider_name == "openai":
         return OpenAIProvider()
     return LocalProvider()

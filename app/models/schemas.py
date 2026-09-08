@@ -51,3 +51,7 @@ class GeneratedAnswer(BaseModel):
     evidence: List[RetrievalResult] = Field(default_factory=list)
     
     model_config = ConfigDict(frozen=True)
+
+class AskRequest(BaseModel):
+    question: str = Field(..., min_length=1)
+

@@ -50,11 +50,12 @@ def cosine_similarity(query_emb: np.ndarray, doc_embs: np.ndarray) -> np.ndarray
     return similarities
 
 class RetrievalService:
-    def __init__(self, storage_dir: Path | str):
+    def __init__(self, storage_dir: Path | str, embedding_provider=None):
         self.storage_dir = Path(storage_dir)
         self.embeddings_path = self.storage_dir / "embeddings.npy"
         self.metadata_path = self.storage_dir / "metadata.json"
         
+        self.embedding_provider = embedding_provider
         self.min_score = float(os.getenv("RETRIEVAL_MIN_SCORE", "0.55"))
         self.top_k = int(os.getenv("RETRIEVAL_TOP_K", "30"))
         try:
@@ -73,6 +74,8 @@ class RetrievalService:
             raise ValueError("Corrupted stored matrix: contains non-finite values.")
 
     def get_query_embedding(self, question: str) -> np.ndarray:
+        if self.embedding_provider:
+            return self.embedding_provider.get_query_embedding(question)
         provider = get_embedding_provider()
         return provider.get_query_embedding(question)
 
