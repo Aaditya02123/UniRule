@@ -44,3 +44,10 @@ class EvidenceAnalysisResult(BaseModel):
     conflict_groups: Dict[str, List[RetrievalResult]] = Field(default_factory=dict)
     
     model_config = ConfigDict(frozen=True)
+
+class GeneratedAnswer(BaseModel):
+    classification: Classification
+    answer: str
+    evidence: List[RetrievalResult] = Field(default_factory=list)
+    
+    model_config = ConfigDict(frozen=True)
